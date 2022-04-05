@@ -16,8 +16,7 @@ class UserListingField(serializers.RelatedField, ABC):
 
 
 class ProjectModelSerializer(serializers.HyperlinkedModelSerializer):
-    users = UserListingField(many=True,
-                             queryset=get_user_model().objects.all())
+    users = UserListingField(many=True, queryset=get_user_model().objects.all())
 
     class Meta:
         model = Project
@@ -25,7 +24,7 @@ class ProjectModelSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class ToDoModelSerializer(serializers.HyperlinkedModelSerializer):
-    author = UserModelSerializer(read_only=True)
+    users = UserModelSerializer(read_only=True)
 
     class Meta:
         model = ToDo
