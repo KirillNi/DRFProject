@@ -8,7 +8,7 @@ class ProjectFilter(filters.FilterSet):
 
     class Meta:
         model = Project
-        fields = ('name',)
+        fields = '__all__'
 
 
 class ToDoFilter(filters.FilterSet):

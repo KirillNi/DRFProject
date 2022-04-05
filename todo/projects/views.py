@@ -15,11 +15,6 @@ class ProjectViewSet(ModelViewSet):
     pagination_class = ProjectLimitOffsetPagination
     filterset_class = ProjectFilter
 
-    # def get_serializer_context(self):
-    #     context = super().get_serializer_context()
-    #     context['user'] = self.request.user
-    #     return context
-
 
 class ToDoViewSet(ModelViewSet):
     queryset = ToDo.objects.all()
@@ -40,7 +35,3 @@ class ToDoViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    # def get_serializer_context(self):
-    #     context = super().get_serializer_context()
-    #     context['user'] = self.request.user
-    #     return context

@@ -20,7 +20,7 @@ const UserList = ({items}) => {
             <tr>
                 <th>Username</th>
                 <th>First name</th>
-                <th>Last Name</th>
+                <th>Last name</th>
                 <th>Email</th>
                 <th>Birthday year</th>
             </tr>
@@ -30,5 +30,5 @@ const UserList = ({items}) => {
 }
 
 
-export default UserList
+export default UserList;
 
