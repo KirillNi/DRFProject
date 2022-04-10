@@ -1,9 +1,13 @@
 from rest_framework import mixins, viewsets
-from .models import User
-from .serializers import UserModelSerializer
+from django.contrib.auth.models import User as AuthUser
+from .serializers import UserModelSerializer, UserModelSerializerWithSuperuserStaff
 
 
 class UserModelViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
                        mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserModelSerializer
+    queryset = AuthUser.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.version == '2':
+            return UserModelSerializerWithSuperuserStaff
+        return UserModelSerializer
