@@ -1,16 +1,16 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User as AuthUser
-from .models import User
+
+from .models import CustomUser
 
 
-class UserModelSerializer(serializers.ModelSerializer):
+class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ('username', 'first_name', 'last_name', 'email', )
+        model = CustomUser
+        fields = ('url', 'username', 'first_name', 'last_name', 'email',)
 
 
-class UserModelSerializerWithSuperuserStaff(serializers.ModelSerializer):
+class CustomUserAdminSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AuthUser
-        fields = ('username', 'first_name', 'last_name', 'email',
-                  'is_superuser', 'is_staff',)
+        model = CustomUser
+        fields = ('url', 'username', 'first_name', 'last_name', 'email',
+                  'is_superuser', 'is_staff')

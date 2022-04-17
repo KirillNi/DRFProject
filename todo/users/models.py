@@ -1,11 +1,14 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from uuid import uuid4
 
 
-class User(models.Model):
-    uid = models.UUIDField(primary_key=True, default=uuid4, verbose_name='uid')
-    username = models.CharField(max_length=64, verbose_name='username')
-    first_name = models.CharField(max_length=64, verbose_name='first name')
-    last_name = models.CharField(max_length=64, verbose_name='last name')
-    email = models.EmailField(unique=True, max_length=254, verbose_name='email address')
-    birthday_year = models.PositiveIntegerField(verbose_name='birthday year')
+class CustomUser(AbstractUser):
+    uid = models.UUIDField(primary_key=True, default=uuid4)
+    email = models.EmailField(_('email address'), unique=True)
+
+    class Meta:
+        verbose_name = 'user'
+        verbose_name_plural = 'users'
+        ordering = ('-date_joined',)

@@ -1,122 +1,244 @@
-import React from 'react'
-// import './App.css'
-import axios from 'axios'
-import {BrowserRouter, Route, Link, Routes} from 'react-router-dom'
-import UserList from './components/User.js'
-import TodoList from './components/ToDos.js'
-import ProjectList from './components/Projects.js'
-import LoginForm from './components/Auth.js'
-import Cookies from 'universal-cookie'
+import React from "react";
+import {BrowserRouter as Router, Route, Routes, Navigate} from "react-router-dom";
+import Header from "./components/Header";
+import axios from "axios";
+import Cookies from "universal-cookie/lib";
+import {ProjectDetail, ProjectList} from "./components/Projects";
+import PageNotFound404 from "./components/PageNotFound404";
+import LoginForm from "./components/LoginForm";
+import UserList from "./components/Users";
+import TodoList from "./components/Todos";
+import ProjectForm from "./components/ProjectForm";
+import TodoForm from "./components/TodoForm";
 
 
 
-class App extends React.Component {
+const BASE_API_URL = "http://127.0.0.1:8000/api/";
+const BASE_NAME_COOKIES = "ToDoList";
 
-   constructor(props) {
-       super(props)
-       this.state = {
-           'users': [],
-           'todos': [],
-           'projects': [],
-           'token': ''
-       }
-   }
+export default class ToDoListApp extends React.Component {
+    constructor(props) {
+        super(props);
+        this.logout = this.logout.bind(this);
+        this.getProject = this.getProject.bind(this);
+        this.createProject = this.createProject.bind(this);
+        this.createTodo = this.createTodo.bind(this);
+        this.searchTextChanged = this.searchTextChanged.bind(this);
+        this.state = {
+            auth: {username: "", isAuth: false},
+            navbarItems: [
+                {name: "Projects", href: "/"},
+                {name: "Users", href: "/users"},
+                {name: "Todos", href: "/todos"}
+            ],
+            project: {},
+            projects: [],
+            searchText: "",
+            searchList: [],
+            todos: [],
+            users: [],
+        }
+    }
 
-   set_token(token) {
-       const cookies = new Cookies()
-       cookies.set('token', token)
-       this.setState({'token': token})
-   }
+    getHeaders() {
+        let headers = {'Content-Type': 'application/json'}
+        if (this.state.auth.isAuth) {
+            const cookies = new Cookies()
+            headers['Authorization'] = `Token ${cookies.get(`${BASE_NAME_COOKIES}token`)}`;
+        }
+        return headers
+    }
 
-   is_authenticated() {
-        return this.state.token !== ''
-   }
+    loadData() {
+        if (this.state.auth.isAuth) {
+            const headers = this.getHeaders();
+
+            // ToDo Можно написать единую функцию получения данных по имени
+            axios.get(`${BASE_API_URL}projects/`, {headers})
+                .then(response => {
+                    this.setState({projects: response.data.results, searchList: response.data.results})
+                })
+                .catch(error => console.log(error))
+
+            axios.get(`${BASE_API_URL}users/`, {headers})
+                .then(response => {
+                    this.setState({users: response.data.results})
+                })
+                .catch(error => console.log(error))
+
+            axios.get(`${BASE_API_URL}todos/`, {headers})
+                .then(response => {
+                    this.setState({todos: response.data.results})
+                })
+                .catch(error => console.log(error))
+        } else {
+            this.setState({projects: [], users: [], todos: []})
+        }
+    }
+
+    createProject(projectData) {
+        if (!this.state.auth.isAuth) return null;
+        const headers = this.getHeaders();
+        axios.post(`${BASE_API_URL}projects/`, projectData, {headers})
+            .then(response => {
+                let newProject = response.data;
+                this.setState(
+                    {projects: [...this.state.projects, newProject]}
+                );
+                window.location.href = '/';
+            })
+            .catch(error => console.log(error))
+    }
+
+    createTodo(todoData) {
+        if (!this.state.auth.isAuth) return null;
+        const headers = this.getHeaders();
+        axios.post(`${BASE_API_URL}todos/`, todoData, {headers})
+            .then(response => {
+                let newTodo = response.data;
+                this.setState(
+                    {todos: [...this.state.todos, newTodo]}
+                );
+                window.location.href = '/todos';
+            })
+            .catch(error => console.log(error))
+    }
+
+    deleteProject(id) {
+        const headers = this.getHeaders();
+        axios.delete(`${BASE_API_URL}projects/${id}/`, {headers})
+            .then(() => {
+                this.setState({projects: this.state.projects.filter((item) => item.id !== id)})
+            })
+            .catch(error => console.log(error));
+    }
+
+    findProject(text) {
+        let filterProjects = this.state.searchList
+        if (text !== '') {
+            filterProjects = filterProjects.filter((item) => item.name.includes(text));
+        }
+        this.setState({projects: filterProjects})
+    }
+
+    searchTextChanged(text) {
+        this.setState({searchText: text});
+        this.findProject(text);
+    }
+
+    deleteTodo(url) {
+        const headers = this.getHeaders();
+        axios.delete(`${url}`, {headers})
+            .then(() => {
+                this.setState({todos: this.state.todos.filter((item) => item.url !== url)})
+            })
+            .catch(error => console.log(error))
+    }
+
+    setAuthState(username, isAuth) {
+        this.setState(
+            {auth: {username: username, isAuth: isAuth}},
+            () => this.loadData()
+        )
+    }
+
+    login(username, password) {
+        axios.post(`${BASE_API_URL}token-auth/`, {username: username, password: password})
+            .then(response => {
+                const cookies = new Cookies();
+                cookies.set(`${BASE_NAME_COOKIES}token`, response.data.token);
+                cookies.set(`${BASE_NAME_COOKIES}username`, username);
+                this.setAuthState(username, true);
+            }).catch(error => {
+            console.log(error);
+            alert("Check username and password");
+        })
+    }
 
     logout() {
-        this.set_token('')
+        const cookies = new Cookies();
+        cookies.remove(`${BASE_NAME_COOKIES}token`);
+        cookies.remove(`${BASE_NAME_COOKIES}username`);
+        this.setAuthState('', false)
+        window.location.href = '/login';
     }
 
-    get_token_from_storage() {
+    getTokenFromStorage() {
         const cookies = new Cookies()
-        const token = cookies.get('token')
-        this.setState({'token': token})
+        const isAuth = !!cookies.get(`${BASE_NAME_COOKIES}token`)
+        const username = cookies.get(`${BASE_NAME_COOKIES}username`)
+        this.setAuthState(username, isAuth)
     }
 
-    get_token(username, password) {
-        axios.post('http://127.0.0.1:8000/api-token-auth/', {username: username, password: password})
+    getProject(id) {
+        if (!this.state.auth.isAuth) return null;
+        const headers = this.getHeaders();
+        axios.get(`${BASE_API_URL}projects/${id}/`, {headers})
             .then(response => {
-                this.set_token(response.data['token'])
-        }).catch(error => alert('Неверный логин или пароль'))
+                this.setState({project: response.data})
+            })
+            .catch(error => {
+                console.log(error)
+            })
     }
 
+    componentDidMount() {
+        this.getTokenFromStorage();
+    }
 
-
-   load_data() {
-       axios.get('http://127.0.0.1:8000/api/users/')
-           .then(response => {
-                this.setState({users: response.data})
-            }).catch(error => console.log(error))
-
-       axios.get('http://127.0.0.1:8000/api/todos/')
-           .then(response => {
-                this.setState({todos: response.data})
-            }).catch(error => console.log(error))
-
-       axios.get('http://127.0.0.1:8000/api/projects/')
-           .then(response => {
-                this.setState({projects: response.data})
-            }).catch(error => console.log(error))
-   }
-
-   componentDidMount() {
-        this.get_token_from_storage()
-        this.load_data()
-   }
-
-   render () {
-       return (
-           <div className="App">
-               <BrowserRouter>
-                    <nav>
-                        <ul>
-                            <li>
-                                <Link to='/'>Users</Link>
-                            </li>
-                            <li>
-                                <Link to='/todos'>ToDos</Link>
-                            </li>
-                            <li>
-                                <Link to='/projects'>Projects</Link>
-                            </li>
-                            <li>
-                                {this.is_authenticated() ? <button onClick={()=>this.logout()}>
-                                    Logout</button> : <Link to='/login'>Login</Link>}
-                            </li>
-                        </ul>
-                    </nav>
+    render() {
+        return (
+            <div className="wrapper">
+                <Router>
+                    <Header
+                        auth={this.state.auth}
+                        logout={this.logout}
+                        navbarItems={this.state.navbarItems}
+                    />
                     <Routes>
-                        <Route exact path='/' element={<UserList items={this.state.users} />} />
-                        <Route exact path='/todos' element={<TodoList items={this.state.todos} />} />
-                        <Route exact path='/projects' element={<ProjectList items={this.state.projects} />} />
-                        <Route exact path='/login' element={<LoginForm
-                            get_token={(username, password) => this.get_token(username, password)} />} />
-                        <Route component={NotFound404} />
+                        <Route exact path="/" element={
+                            <ProjectList
+                                items={this.state.projects}
+                                deleteProject={(id) => this.deleteProject(id)}
+                                isAuth={this.state.auth.isAuth}
+                                searchTextChanged={this.searchTextChanged}
+                            />
+                        }/>
+                        <Route exact path="/users" element={<UserList items={this.state.users}/>}/>
+                        <Route exact path="/todos" element={
+                            <TodoList
+                                items={this.state.todos}
+                                deleteTodo={(url) => this.deleteTodo(url)}
+                                isAuth={this.state.auth.isAuth}
+                            />
+                        }/>
+                        <Route exact path="/projects/:id" element={
+                            <ProjectDetail
+                                getProject={this.getProject}
+                                item={this.state.project}
+                            />
+                        }/>
+                        <Route exact path="/login" element={
+                            this.state.auth.isAuth ? <Navigate replace to="/"/> :
+                                <LoginForm login={(username, password) => this.login(username, password)}/>
+                        }/>
+                        <Route path="/projects/create" element={
+                            <ProjectForm
+                                users={this.state.users}
+                                createProject={this.createProject}
+                            />
+                        }/>
+                        <Route path="/todos/create" element={
+                            <TodoForm
+                                projects={this.state.projects}
+                                createTodo={this.createTodo}
+                            />
+                        }/>
+                        <Route path="/projects" element={<Navigate replace to="/"/>}/>
+                        <Route exact path="*" element={<PageNotFound404/>}/>
                     </Routes>
-               </BrowserRouter>
-           </div>
-       )
-   }
+                </Router>
+            </div>
+        )
+    }
 }
-
-
-const NotFound404 = ({ location }) => {
-    return (
-        <div>
-            <h1>Страница по адресу '{location.pathname}' не найдена</h1>
-        </div>
-    )
-}
-
-
-export default App;
-
